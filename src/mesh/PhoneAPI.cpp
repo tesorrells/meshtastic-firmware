@@ -17,6 +17,7 @@
 #include "TypeConversions.h"
 #include "main.h"
 #include "xmodem.h"
+#include "modules/TacticalMessageModule.h"
 
 #if FromRadio_size > MAX_TO_FROM_RADIO_SIZE
 #error FromRadio is too big
@@ -155,6 +156,20 @@ bool PhoneAPI::handleToRadio(const uint8_t *buf, size_t bufLength)
 #endif
         case meshtastic_ToRadio_heartbeat_tag:
             LOG_DEBUG("Got client heartbeat");
+            break;
+        case meshtastic_ToRadio_send_tactical_message_request_tag:
+            LOG_INFO("PhoneAPI: Received SendTacticalMessageRequest C:%d D:%d O:%d",
+                    toRadioScratch.send_tactical_message_request.contact_index,
+                    toRadioScratch.send_tactical_message_request.distance_index,
+                    toRadioScratch.send_tactical_message_request.order_index);
+            if (tacticalMessageModule) {
+                tacticalMessageModule->sendProgrammaticMessage(
+                    toRadioScratch.send_tactical_message_request.contact_index,
+                    toRadioScratch.send_tactical_message_request.distance_index,
+                    toRadioScratch.send_tactical_message_request.order_index);
+            } else {
+                LOG_ERROR("PhoneAPI: TacticalMessageModule instance is null!");
+            }
             break;
         default:
             // Ignore nop messages
@@ -392,21 +407,20 @@ size_t PhoneAPI::getFromRadio(uint8_t *buf)
             fromRadioScratch.moduleConfig.which_payload_variant = meshtastic_ModuleConfig_paxcounter_tag;
             fromRadioScratch.moduleConfig.payload_variant.paxcounter = moduleConfig.paxcounter;
             break;
+        case meshtastic_ModuleConfig_tactical_message_tag:
+            LOG_DEBUG("Send module config: tactical_message");
+            fromRadioScratch.moduleConfig.which_payload_variant = meshtastic_ModuleConfig_tactical_message_tag;
+            fromRadioScratch.moduleConfig.payload_variant.tactical_message = moduleConfig.tactical_message;
+            break;
         default:
             LOG_ERROR("Unknown module config type %d", config_state);
         }
 
         config_state++;
-        // Advance when we have sent all of our ModuleConfig objects
-        if (config_state > (_meshtastic_AdminMessage_ModuleConfigType_MAX + 1)) {
-            // Handle special nonce behaviors:
-            // - SPECIAL_NONCE_ONLY_CONFIG: Skip node info, go directly to file manifest
-            // - SPECIAL_NONCE_ONLY_NODES: After sending nodes, skip to complete
-            if (config_nonce == SPECIAL_NONCE_ONLY_CONFIG) {
-                state = STATE_SEND_FILEMANIFEST;
-            } else {
-                state = STATE_SEND_OTHER_NODEINFOS;
-            }
+        // Advance when we have sent all of our module config objects
+        // Iterate up to the highest known tag we want to send.
+        if (config_state > meshtastic_ModuleConfig_tactical_message_tag) { 
+            state = STATE_SEND_OTHER_NODEINFOS;
             config_state = 0;
         }
         break;

@@ -1,5 +1,5 @@
 #pragma once
-#if HAS_SCREEN // Ensure a screen is available
+// #if HAS_SCREEN // Ensure a screen is available -- Removing for headless testing
 
 #include "ProtobufModule.h"
 #include "input/InputBroker.h"
@@ -38,6 +38,7 @@ class TacticalMessageModule : public SinglePortModule, public Observable<const U
     bool shouldDraw();
     void showTemporaryFeedback(const String &message, bool isError = false);
     const char * getModuleName() { return "TacticalMessageModule"; }
+    void sendProgrammaticMessage(int contactIdx, int distanceIdx, int orderIdx);
 
 
 #if defined(RAK14014) || defined(USE_VIRTUAL_KEYBOARD) // Example guards if specific hardware affects behavior
@@ -103,4 +104,4 @@ class TacticalMessageModule : public SinglePortModule, public Observable<const U
 
 extern TacticalMessageModule *tacticalMessageModule;
 
-#endif // HAS_SCREEN 
+// #endif // HAS_SCREEN -- Removing for headless testing 

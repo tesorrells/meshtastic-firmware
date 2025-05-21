@@ -808,6 +808,9 @@ void NodeDB::installDefaultModuleConfig()
     moduleConfig.detection_sensor.detection_trigger_type = meshtastic_ModuleConfig_DetectionSensorConfig_TriggerType_LOGIC_HIGH;
     moduleConfig.detection_sensor.minimum_broadcast_secs = 45;
 
+    moduleConfig.has_tactical_message = true;
+    moduleConfig.tactical_message.enabled = false;
+
     moduleConfig.has_ambient_lighting = true;
     moduleConfig.ambient_lighting.current = 10;
     // Default to a color based on our node number
@@ -1344,6 +1347,7 @@ bool NodeDB::saveToDiskNoRetry(int saveWhat)
         moduleConfig.has_ambient_lighting = true;
         moduleConfig.has_audio = true;
         moduleConfig.has_paxcounter = true;
+        moduleConfig.has_tactical_message = true; // ADDED THIS LINE
 
         success &=
             saveProto(moduleConfigFileName, meshtastic_LocalModuleConfig_size, &meshtastic_LocalModuleConfig_msg, &moduleConfig);

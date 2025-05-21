@@ -611,7 +611,7 @@ void AdminModule::handleSetConfig(const meshtastic_Config &c)
         }
         break;
     case meshtastic_Config_network_tag:
-        LOG_INFO("Set config: WiFi");
+        LOG_INFO("Set config: Network");
         config.has_network = true;
         config.network = c.payload_variant.network;
         break;
@@ -781,9 +781,12 @@ bool AdminModule::handleSetModuleConfig(const meshtastic_ModuleConfig &c)
         moduleConfig.has_neighbor_info = true;
         if (moduleConfig.neighbor_info.update_interval < min_neighbor_info_broadcast_secs) {
             LOG_DEBUG("Tried to set update_interval too low, setting to %d", default_neighbor_info_broadcast_secs);
-            moduleConfig.neighbor_info.update_interval = default_neighbor_info_broadcast_secs;
         }
         moduleConfig.neighbor_info = c.payload_variant.neighbor_info;
+        if (moduleConfig.neighbor_info.update_interval < min_neighbor_info_broadcast_secs) {
+            LOG_DEBUG("Neighbor info update_interval was %d, adjusted to %d", moduleConfig.neighbor_info.update_interval, default_neighbor_info_broadcast_secs);
+            moduleConfig.neighbor_info.update_interval = default_neighbor_info_broadcast_secs;
+        }
         break;
     case meshtastic_ModuleConfig_detection_sensor_tag:
         LOG_INFO("Set module config: Detection Sensor");
@@ -800,6 +803,15 @@ bool AdminModule::handleSetModuleConfig(const meshtastic_ModuleConfig &c)
         moduleConfig.has_paxcounter = true;
         moduleConfig.paxcounter = c.payload_variant.paxcounter;
         break;
+    case meshtastic_ModuleConfig_tactical_message_tag:
+        LOG_INFO("Set module config: Tactical Message");
+        moduleConfig.has_tactical_message = true;
+        moduleConfig.tactical_message = c.payload_variant.tactical_message;
+        LOG_INFO("Tactical Message enabled after set: %s", moduleConfig.tactical_message.enabled ? "true" : "false");
+        break;
+    default:
+        LOG_WARN("Set module config: Not handled - %d", c.which_payload_variant);
+        return false;
     }
     saveChanges(SEGMENT_MODULECONFIG);
     return true;
@@ -1241,4 +1253,16 @@ void disableBluetooth()
         nrf52Bluetooth->shutdown();
 #endif
 #endif
+}
+
+// Simple local StrToBool - can be used by various helpers
+static bool LocalStrToBool(const char *valStr) {
+    if (!valStr || !*valStr)
+        return false; // Treat empty or null string as false
+
+    // Convert to lowercase for case-insensitive comparison
+    std::string lowerVal = valStr;
+    std::transform(lowerVal.begin(), lowerVal.end(), lowerVal.begin(), ::tolower);
+
+    return lowerVal == "true" || lowerVal == "1" || lowerVal == "yes" || lowerVal == "on";
 }

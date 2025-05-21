@@ -1,5 +1,5 @@
 #include "configuration.h"
-#if HAS_SCREEN
+// #if HAS_SCREEN -- Removing for headless testing
 
 #include "TacticalMessageModule.h"
 #include "Channels.h"
@@ -65,7 +65,7 @@ void TacticalMessageModule::commonInit() {
 }
 
 bool TacticalMessageModule::isEnabledViaConfig() {
-#if HAS_SCREEN
+#if 1 // HAS_SCREEN // Allow enabling via config even on headless for testing
     // Check if the specific config for this module exists and is enabled.
     // moduleConfig is typically a global variable holding the current configurations.
     // Make sure "configuration.h" (or equivalent that defines moduleConfig) is included.
@@ -469,4 +469,55 @@ void TacticalMessageModule::drawFrame(OLEDDisplay *display, OLEDDisplayUiState *
 }
 #endif // !HAS_TFT
 
-#endif // HAS_SCREEN
+void TacticalMessageModule::sendProgrammaticMessage(int contactIdx, int distanceIdx, int orderIdx)
+{
+    if (!tacticalMessageModule) {
+        LOG_ERROR("TacticalMessageModule instance is null in sendProgrammaticMessage");
+        return;
+    }
+
+    if (contactIdx < 0 || contactIdx >= TACTICAL_CONTACTS_COUNT ||
+        distanceIdx < 0 || distanceIdx >= TACTICAL_DISTANCES_COUNT ||
+        orderIdx < 0 || orderIdx >= TACTICAL_ORDERS_COUNT) {
+        LOG_ERROR("Invalid indices for programmatic tactical message: C:%d, D:%d, O:%d", contactIdx, distanceIdx, orderIdx);
+        return;
+    }
+
+    // Set selections directly
+    tacticalMessageModule->selectedContactIndex = contactIdx;
+    tacticalMessageModule->selectedDistanceIndex = distanceIdx;
+    tacticalMessageModule->selectedOrderIndex = orderIdx;
+
+    strncpy(tacticalMessageModule->selectedContact, TacticalMessageModule::contacts[contactIdx], MAX_PART_LEN - 1);
+    tacticalMessageModule->selectedContact[MAX_PART_LEN - 1] = '\0'; // Ensure null termination
+
+    strncpy(tacticalMessageModule->selectedDistance, TacticalMessageModule::distances[distanceIdx], MAX_PART_LEN - 1);
+    tacticalMessageModule->selectedDistance[MAX_PART_LEN - 1] = '\0';
+
+    strncpy(tacticalMessageModule->selectedOrder, TacticalMessageModule::orders[orderIdx], MAX_PART_LEN - 1);
+    tacticalMessageModule->selectedOrder[MAX_PART_LEN - 1] = '\0';
+
+    // Construct the message
+    snprintf(tacticalMessageModule->constructedMessage, MAX_TACTICAL_MESSAGE_LEN, "%s %s %s",
+             tacticalMessageModule->selectedContact, tacticalMessageModule->selectedDistance, tacticalMessageModule->selectedOrder);
+
+    LOG_INFO("Programmatically constructed Tactical Message: %s", tacticalMessageModule->constructedMessage);
+
+    // Send the message
+    tacticalMessageModule->sendConstructedMessage();
+
+    // Reset selections for next programmatic call, but don't change UI state
+    // Note: sendConstructedMessage might show feedback if it were UI driven, here we just reset.
+    // If sendConstructedMessage itself calls resetSelections, this might be redundant or could be simplified.
+    // For now, explicit reset ensures clean state for next programmatic call.
+    tacticalMessageModule->selectedContactIndex = -1;
+    tacticalMessageModule->selectedDistanceIndex = -1;
+    tacticalMessageModule->selectedOrderIndex = -1;
+    memset(tacticalMessageModule->selectedContact, 0, sizeof(tacticalMessageModule->selectedContact));
+    memset(tacticalMessageModule->selectedDistance, 0, sizeof(tacticalMessageModule->selectedDistance));
+    memset(tacticalMessageModule->selectedOrder, 0, sizeof(tacticalMessageModule->selectedOrder));
+    memset(tacticalMessageModule->constructedMessage, 0, sizeof(tacticalMessageModule->constructedMessage));
+    // Do not reset currentStage or lastInteractionTime as this is not UI driven.
+}
+
+// #endif // HAS_SCREEN -- Removing for headless testing

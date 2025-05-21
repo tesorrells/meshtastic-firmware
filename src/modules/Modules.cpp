@@ -97,9 +97,8 @@
 #include "modules/DropzoneModule.h"
 #endif
 
-#if HAS_SCREEN // TacticalMessageModule requires a screen
+// TacticalMessageModule requires a screen // Commenting this out as we are enabling for headless
 #include "modules/TacticalMessageModule.h"
-#endif
 
 /**
  * Create module instances here.  If you are adding a new module, you must 'new' it here (or somewhere else)
@@ -201,9 +200,8 @@ void setupModules()
 #if HAS_SCREEN && !MESHTASTIC_EXCLUDE_CANNEDMESSAGES
         cannedMessageModule = new CannedMessageModule();
 #endif
-#if HAS_SCREEN // TacticalMessageModule requires a screen
+// TacticalMessageModule requires a screen // Commenting this out
         tacticalMessageModule = new TacticalMessageModule();
-#endif
 #if ARCH_PORTDUINO
         new HostMetricsModule();
 #endif
